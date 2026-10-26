@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dobi AI - RAG Smart Recipe Assistant</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Marked.js for Markdown Formatting -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            dobi: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316', // Bright Orange Signature
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #f97316;
+    }
+
+    /* Markdown Styling Inside Chat */
+    .prose-dobi h1, .prose-dobi h2, .prose-dobi h3 {
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 0.75rem;
+      margin-bottom: 0.35rem;
+    }
+    .prose-dobi h3 { font-size: 1.05rem; color: #ea580c; }
+    .prose-dobi p {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
+    .prose-dobi ul, .prose-dobi ol {
+      margin-left: 1.25rem;
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
+    .prose-dobi ul { list-style-type: disc; }
+    .prose-dobi ol { list-style-type: decimal; }
+    .prose-dobi blockquote {
+      border-left: 4px solid #f97316;
+      padding-left: 0.75rem;
+      background-color: #fff7ed;
+      border-radius: 0 0.375rem 0.375rem 0;
+      margin: 0.5rem 0;
+      font-size: 0.875rem;
+      color: #9a3412;
+      padding-top: 0.25rem;
+      padding-bottom: 0.25rem;
+    }
+    .prose-dobi code {
+      background-color: #f1f5f9;
+      color: #ea580c;
+      padding: 0.1rem 0.3rem;
+      border-radius: 0.25rem;
+      font-size: 0.85em;
+    }
+
+    /* Pulse animation for glowing badge */
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.03); }
+    }
+    .glow-orange {
+      animation: pulse-glow 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
+
+  <!-- ===================================================================== -->
+  <!-- SIDEBAR (LEFT) -->
+  <!-- ===================================================================== -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-80 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 -translate-x-full md:relative md:translate-x-0 shadow-lg md:shadow-none">
+    
+    <!-- Sidebar Header: Logo & Brand -->
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-orange-50 via-white to-orange-50/50">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-dobi-600 via-dobi-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-dobi-500/25">
+          <i class="fa-solid fa-fire-burner text-xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="font-extrabold text-xl tracking-tight text-slate-800">Dobi <span class="text-dobi-500">AI</span></h1>
+            <span class="bg-dobi-100 text-dobi-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-dobi-200">RAG</span>
+          </div>
+          <p class="text-xs text-slate-400 font-medium">Smart Recipe Assistant</p>
+        </div>
+      </div>
+      <!-- Mobile Close Button -->
+      <button id="closeSidebarBtn" class="md:hidden text-slate-400 hover:text-slate-600 p-2 rounded-lg">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+
+    <!-- New Chat Button -->
+    <div class="p-4">
+      <button id="newChatBtn" class="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-gradient-to-r from-dobi-500 to-dobi-600 hover:from-dobi-600 hover:to-dobi-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-dobi-500/20 transition-all duration-200 active:scale-[0.98]">
+        <i class="fa-solid fa-plus text-xs"></i>
+        <span>Mulai Obrolan Baru</span>
+      </button>
+    </div>
+
+    <!-- Scrollable Sidebar Content -->
+    <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-5">
+      
+      <!-- Section: Menu & Resep Unggulan RAG -->
+      <div>
+        <div class="flex items-center justify-between mb-2 px-1">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-book-bookmark text-dobi-500 text-[11px]"></i>
+            Menu RAG Dobi AI
+          </span>
+          <span class="text-[10px] bg-slate-100 text-slate-500 font-semibold px-1.5 py-0.5 rounded">{{ recipes|length }} Resep</span>
+        </div>
+        <div class="space-y-1.5">
+          {% for recipe in recipes %}
+          <button onclick="askPresetRecipe('{{ recipe.title }}')" class="w-full text-left p-2.5 rounded-xl hover:bg-orange-50/80 border border-transparent hover:border-dobi-200 transition-all duration-150 group flex items-start gap-2.5">
+            <span class="w-7 h-7 rounded-lg bg-orange-100 text-dobi-600 flex items-center justify-center text-xs shrink-0 group-hover:bg-dobi-500 group-hover:text-white transition-colors">
+              <i class="fa-solid fa-utensils"></i>
+            </span>
+            <div class="overflow-hidden">
+              <p class="text-xs font-semibold text-slate-700 truncate group-hover:text-dobi-600">{{ recipe.title }}</p>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-[10px] text-slate-400">{{ recipe.category }}</span>
+                <span class="text-[9px] text-dobi-500 bg-orange-100/60 px-1 rounded font-medium">{{ recipe.prep_time }}</span>
+              </div>
+            </div>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Section: Riwayat Obrolan Fiktif (Chat History) -->
+      <div>
+        <div class="flex items-center justify-between mb-2 px-1">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-clock-rotate-left text-slate-400 text-[11px]"></i>
+            Riwayat Obrolan
+          </span>
+          <span class="text-[10px] text-slate-400 font-medium">Terakhir</span>
+        </div>
+        <div class="space-y-1">
+          <div class="p-2 rounded-lg text-xs text-slate-600 hover:bg-slate-100 cursor-pointer flex items-center gap-2 truncate">
+            <i class="fa-regular fa-comment text-slate-400 text-[11px]"></i>
+            <span class="truncate">Resep Nasi Goreng Solaria</span>
+          </div>
+          <div class="p-2 rounded-lg text-xs text-slate-600 hover:bg-slate-100 cursor-pointer flex items-center gap-2 truncate">
+            <i class="fa-regular fa-comment text-slate-400 text-[11px]"></i>
+            <span class="truncate">Tips Bumbu Rendang Empuk</span>
+          </div>
+          <div class="p-2 rounded-lg text-xs text-slate-600 hover:bg-slate-100 cursor-pointer flex items-center gap-2 truncate">
+            <i class="fa-regular fa-comment text-slate-400 text-[11px]"></i>
+            <span class="truncate">Sarapan Praktis Omelet 10 Menit</span>
+          </div>
+          <div class="p-2 rounded-lg text-xs text-slate-600 hover:bg-slate-100 cursor-pointer flex items-center gap-2 truncate">
+            <i class="fa-regular fa-comment text-slate-400 text-[11px]"></i>
+            <span class="truncate">Sambal Geprek Bawang Pedas</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sidebar Footer / Status Badge -->
+    <div class="p-3.5 border-t border-slate-100 bg-slate-50/70">
+      <div class="flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <div>
+            <p class="font-bold text-slate-700 text-[11px]">Llama 3.2 3B Engine</p>
+            <p class="text-[10px] text-slate-400">Ollama API Ready</p>
+          </div>
+        </div>
+        <span class="text-[10px] font-mono bg-orange-100 text-dobi-700 font-bold px-1.5 py-0.5 rounded border border-orange-200">v1.0</span>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Mobile Overlay -->
+  <div id="mobileOverlay" class="fixed inset-0 bg-slate-900/40 z-30 hidden md:hidden transition-opacity"></div>
+
+  <!-- ===================================================================== -->
+  <!-- MAIN CHAT AREA (RIGHT) -->
+  <!-- ===================================================================== -->
+  <main class="flex-1 flex flex-col h-screen bg-[#fafbfc] relative overflow-hidden">
+    
+    <!-- Top Header Bar -->
+    <header class="h-16 border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-4 md:px-6 flex items-center justify-between z-10 shrink-0">
+      <div class="flex items-center gap-3">
+        <!-- Mobile Toggle Button -->
+        <button id="openSidebarBtn" class="md:hidden text-slate-600 hover:text-dobi-600 p-2 rounded-lg hover:bg-slate-100">
+          <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+
+        <div class="relative">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-dobi-500 to-amber-400 flex items-center justify-center text-white shadow-sm font-bold text-lg">
+            🍳
+          </div>
+          <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+        </div>
+
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="font-bold text-base text-slate-800">Dobi AI Assistant</h2>
+            <span class="text-[10px] bg-gradient-to-r from-dobi-500 to-amber-500 text-white font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">Koki Cerdas</span>
+          </div>
+          <p class="text-xs text-slate-400 flex items-center gap-1.5">
+            <span>Siap membantu memasak hari ini</span>
+            <span>•</span>
+            <span class="text-emerald-600 font-medium">Online</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button onclick="showInfoModal()" title="Tentang Dobi AI & RAG" class="w-9 h-9 rounded-xl border border-slate-200 text-slate-500 hover:text-dobi-600 hover:border-dobi-300 hover:bg-orange-50 flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-circle-question text-sm"></i>
+        </button>
+        <button onclick="clearChatHistory()" title="Hapus Riwayat Chat" class="w-9 h-9 rounded-xl border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50 flex items-center justify-center transition-colors">
+          <i class="fa-regular fa-trash-can text-sm"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Chat Messages Scroll Area -->
+    <div id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+      
+      <!-- Welcome Message Card -->
+      <div id="welcomeCard" class="max-w-2xl mx-auto my-6 bg-white rounded-2xl border border-orange-100 p-6 shadow-sm shadow-orange-100/50">
+        <div class="flex items-center gap-3.5 mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-orange-100 text-dobi-600 flex items-center justify-center text-2xl shadow-inner">
+            👨‍🍳
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-800">Halo! Selamat Datang di <span class="text-dobi-500">Dobi AI</span></h3>
+            <p class="text-xs text-slate-500">Smart Recipe Assistant dengan teknologi RAG & Llama 3.2 3B</p>
+          </div>
+        </div>
+
+        <p class="text-sm text-slate-600 leading-relaxed mb-4">
+          Aku siap membantumu menemukan resep masakan Nusantara terlezat, takaran bahan, tips koki, hingga ide kreasi kuliner dari bahan yang ada di kulkasmu. Tanyakan resep apa saja!
+        </p>
+
+        <!-- Quick Suggestion Chips -->
+        <div class="space-y-2">
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles text-dobi-500"></i>
+            Coba Tanyakan Langsung:
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="askPresetPrompt('Bagaimana resep dan cara membuat Nasi Goreng Spesial ala resto?')" class="text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-3 py-1.5 rounded-full transition-all duration-150 active:scale-95 text-left">
+              🍳 Resep Nasi Goreng Spesial
+            </button>
+            <button onclick="askPresetPrompt('Bagaimana cara membuat Ayam Geprek Crispy sambal bawang pedas?')" class="text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-3 py-1.5 rounded-full transition-all duration-150 active:scale-95 text-left">
+              🍗 Ayam Geprek Sambal Bawang
+            </button>
+            <button onclick="askPresetPrompt('Bumbu rahasia Rendang Daging Padang yang empuk dan hitam')" class="text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-3 py-1.5 rounded-full transition-all duration-150 active:scale-95 text-left">
+              🥩 Rendang Daging Sapi Padang
+            </button>
+            <button onclick="askPresetPrompt('Resep Omelet Sayur Keju praktis untuk sarapan 10 menit')" class="text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-3 py-1.5 rounded-full transition-all duration-150 active:scale-95 text-left">
+              🧀 Omelet Sayur Keju Sehat
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Container for dynamic conversation bubbles -->
+      <div id="messagesList" class="max-w-3xl mx-auto space-y-5"></div>
+
+      <!-- Typing Indicator -->
+      <div id="typingIndicator" class="max-w-3xl mx-auto hidden">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-dobi-500 to-amber-400 text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-sm">
+            🍳
+          </div>
+          <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center gap-2">
+            <span class="text-xs font-semibold text-dobi-600">Dobi AI sedang meracik resep</span>
+            <div class="flex items-center gap-1">
+              <span class="w-1.5 h-1.5 bg-dobi-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+              <span class="w-1.5 h-1.5 bg-dobi-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+              <span class="w-1.5 h-1.5 bg-dobi-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Input Area -->
+    <div class="border-t border-slate-200/80 bg-white/95 backdrop-blur-md p-4 shrink-0">
+      <div class="max-w-3xl mx-auto">
+        <form id="chatForm" onsubmit="handleChatSubmit(event)" class="relative flex items-center gap-2">
+          
+          <div class="relative flex-1">
+            <input 
+              type="text" 
+              id="chatInput" 
+              placeholder="Tanya resep apa saja ke Dobi AI... (cth: 'resep nasi goreng' atau 'ayam geprek')" 
+              autocomplete="off"
+              class="w-full bg-slate-50 border border-slate-200 focus:border-dobi-500 focus:bg-white text-slate-800 text-sm rounded-2xl pl-4 pr-10 py-3.5 outline-none transition-all duration-200 shadow-inner placeholder:text-slate-400"
+            />
+            <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300">
+              <i class="fa-solid fa-utensils text-xs"></i>
+            </span>
+          </div>
+
+          <button 
+            type="submit" 
+            id="sendBtn" 
+            class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-dobi-500 to-dobi-600 hover:from-dobi-600 hover:to-dobi-700 text-white font-semibold flex items-center justify-center shadow-md shadow-dobi-500/25 transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          >
+            <i class="fa-solid fa-paper-plane text-sm"></i>
+          </button>
+        </form>
+
+        <p class="text-[11px] text-center text-slate-400 mt-2 font-medium">
+          Dobi AI menggunakan RAG Keyword Retrieval & Llama 3.2 3B untuk memberikan panduan memasak terbaik.
+        </p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: INFO RAG & CARA KERJA -->
+  <!-- ===================================================================== -->
+  <div id="infoModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-orange-100 text-dobi-600 flex items-center justify-center text-base">
+            <i class="fa-solid fa-brain"></i>
+          </div>
+          <h3 class="font-bold text-slate-800 text-base">Arsitektur & Cara Kerja Dobi AI</h3>
+        </div>
+        <button onclick="closeInfoModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="py-4 space-y-3.5 text-xs text-slate-600 leading-relaxed">
+        <div class="p-3 bg-orange-50/70 border border-orange-100 rounded-xl">
+          <p class="font-bold text-dobi-800 mb-1 flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group text-dobi-500"></i>
+            1. Retrieval-Augmented Generation (RAG)
+          </p>
+          <p>Dobi AI mencari dokumen resep terpercaya di basis data internal menggunakan pencocokan kata kunci terbobot (keyword matching). Resep yang cocok diekstrak secara otomatis.</p>
+        </div>
+
+        <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+          <p class="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+            <i class="fa-solid fa-code text-slate-500"></i>
+            2. Prompt Augmentation
+          </p>
+          <p>Informasi resep (bahan, takaran, langkah, tips koki) disuntikkan ke dalam instruksi khusus untuk LLM agar hasil resep akurat dan tidak berhalusinasi.</p>
+        </div>
+
+        <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+          <p class="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+            <i class="fa-solid fa-microchip text-slate-500"></i>
+            3. LLM Generation (Llama 3.2 3B)
+          </p>
+          <p>Prompt dikirim melalui <code>requests.post()</code> ke Ollama di <code>http://localhost:11434/api/generate</code>. Jika Ollama belum berjalan, Dobi AI otomatis memakai Fallback Simulator cerdas sehingga sistem tetap responsif!</p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end">
+        <button onclick="closeInfoModal()" class="px-4 py-2 bg-dobi-500 hover:bg-dobi-600 text-white font-semibold text-xs rounded-xl transition-colors">
+          Mengerti, Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- JAVASCRIPT FRONTEND LOGIC -->
+  <!-- ===================================================================== -->
+  <script>
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const messagesList = document.getElementById('messagesList');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const chatContainer = document.getElementById('chatContainer');
+    const welcomeCard = document.getElementById('welcomeCard');
+
+    // Sidebar Mobile Toggle
+    const sidebar = document.getElementById('sidebar');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    const openSidebarBtn = document.getElementById('openSidebarBtn');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    const newChatBtn = document.getElementById('newChatBtn');
+
+    function toggleSidebar(open) {
+      if (open) {
+        sidebar.classList.remove('-translate-x-full');
+        mobileOverlay.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        mobileOverlay.classList.add('hidden');
+      }
+    }
+
+    openSidebarBtn.addEventListener('click', () => toggleSidebar(true));
+    closeSidebarBtn.addEventListener('click', () => toggleSidebar(false));
+    mobileOverlay.addEventListener('click', () => toggleSidebar(false));
+
+    newChatBtn.addEventListener('click', () => {
+      clearChatHistory();
+      toggleSidebar(false);
+    });
+
+    function showInfoModal() {
+      document.getElementById('infoModal').classList.remove('hidden');
+    }
+
+    function closeInfoModal() {
+      document.getElementById('infoModal').classList.add('hidden');
+    }
+
+    function clearChatHistory() {
+      messagesList.innerHTML = '';
+      if (welcomeCard) welcomeCard.classList.remove('hidden');
+      chatInput.value = '';
+      chatInput.focus();
+    }
+
+    function scrollToBottom() {
+      chatContainer.scrollTo({
+        top: chatContainer.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+
+    function askPresetRecipe(recipeTitle) {
+      const prompt = `Tolong berikan resep dan panduan langkah memasak ${recipeTitle}`;
+      askPresetPrompt(prompt);
+      toggleSidebar(false);
+    }
+
+    function askPresetPrompt(prompt) {
+      chatInput.value = prompt;
+      handleChatSubmit(new Event('submit'));
+    }
+
+    // Format Markdown to HTML safely
+    function renderMarkdown(text) {
+      if (!text) return '';
+      try {
+        return marked.parse(text);
+      } catch (e) {
+        console.error('Markdown parse error:', e);
+        return text.replace(/\n/g, '<br/>');
+      }
+    }
+
+    // Append User Message to UI
+    function appendUserMessage(text) {
+      if (welcomeCard) welcomeCard.classList.add('hidden');
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'flex items-start justify-end gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200';
+      msgDiv.innerHTML = `
+        <div class="max-w-[85%] md:max-w-[75%] bg-gradient-to-tr from-dobi-500 to-orange-500 text-white rounded-2xl rounded-tr-none px-4 py-3 shadow-md shadow-dobi-500/15">
+          <p class="text-sm leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</p>
+          <span class="block text-[10px] text-orange-200 text-right mt-1 font-medium">${getCurrentTime()}</span>
+        </div>
+        <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold shrink-0 shadow-sm">
+          <i class="fa-solid fa-user"></i>
+        </div>
+      `;
+      messagesList.appendChild(msgDiv);
+      scrollToBottom();
+    }
+
+    // Append Assistant Message to UI
+    function appendAssistantMessage(reply, retrievedRecipe, source, contextUsed) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200';
+
+      // Badge Context RAG
+      let ragBadgeHtml = '';
+      if (contextUsed && retrievedRecipe) {
+        ragBadgeHtml = `
+          <div class="inline-flex items-center gap-1.5 bg-orange-100 border border-orange-200 text-dobi-800 text-[11px] font-semibold px-2.5 py-1 rounded-full mb-2.5">
+            <i class="fa-solid fa-database text-dobi-600 text-[10px]"></i>
+            <span>RAG Terhubung: <strong>${escapeHtml(retrievedRecipe)}</strong></span>
+          </div>
+        `;
+      } else {
+        ragBadgeHtml = `
+          <div class="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-medium px-2.5 py-0.5 rounded-full mb-2">
+            <i class="fa-solid fa-sparkles text-amber-500 text-[10px]"></i>
+            <span>Respon AI Kuliner</span>
+          </div>
+        `;
+      }
+
+      msgDiv.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-dobi-500 to-amber-400 text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-sm">
+          🍳
+        </div>
+        <div class="max-w-[90%] md:max-w-[80%] bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-4 md:p-5 shadow-sm">
+          ${ragBadgeHtml}
+          <div class="prose-dobi text-sm text-slate-700">
+            ${renderMarkdown(reply)}
+          </div>
+          <div class="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-3 text-[10px] text-slate-400">
+            <span class="flex items-center gap-1">
+              <i class="fa-solid fa-microchip text-[9px] text-dobi-500"></i>
+              Sumber: ${source === 'ollama' ? 'Llama 3.2 3B (Ollama)' : 'Knowledge Base Terintegrasi'}
+            </span>
+            <span>${getCurrentTime()}</span>
+          </div>
+        </div>
+      `;
+      messagesList.appendChild(msgDiv);
+      scrollToBottom();
+    }
+
+    function getCurrentTime() {
+      const now = new Date();
+      return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Submit handler
+    async function handleChatSubmit(event) {
+      if (event) event.preventDefault();
+
+      const message = chatInput.value.trim();
+      if (!message) return;
+
+      // Disable inputs while waiting
+      chatInput.value = '';
+      chatInput.disabled = true;
+      sendBtn.disabled = true;
+
+      appendUserMessage(message);
+
+      // Show typing indicator
+      typingIndicator.classList.remove('hidden');
+      scrollToBottom();
+
+      try {
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: message })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        typingIndicator.classList.add('hidden');
+        appendAssistantMessage(data.reply, data.retrieved_recipe, data.source, data.context_used);
+
+      } catch (error) {
+        console.error('Fetch error:', error);
+        typingIndicator.classList.add('hidden');
+        appendAssistantMessage(
+          `Maaf, terjadi kendala saat menghubungi asisten kuliner Dobi AI (${error.message}). Pastikan server FastAPI dan backend berjalan normal.`,
+          null,
+          'error',
+          false
+        );
+      } finally {
+        chatInput.disabled = false;
+        sendBtn.disabled = false;
+        chatInput.focus();
+        scrollToBottom();
+      }
+    }
+  </script>
+</body>
+</html>
