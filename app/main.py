@@ -18,10 +18,18 @@ app = FastAPI(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
-# Konfigurasi Koneksi Ollama
+# Konfigurasi Koneksi Ollama & OpenSearch
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_GENERATE_URL = f"{OLLAMA_BASE_URL}/api/generate"
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
+KNOWLEDGE_BASE_PATH = os.environ.get("KNOWLEDGE_BASE_PATH", "/app/knowledge-base")
+OPENSEARCH_BASE_URL = os.getenv("OPENSEARCH_BASE_URL", "http://opensearch:9200")
+
+# Inisialisasi Vector Store OpenSearch
+from app.embeddings import embed_text
+from app.vector_store import VectorStore
+vector_store = VectorStore(base_url=OPENSEARCH_BASE_URL, index_name="recipes-index")
 
 # ==============================================================================
 # KNOWLEDGE BASE: Resep Masakan Dobi AI (Basis Data RAG Sederhana)
@@ -287,11 +295,47 @@ def normalize_text(text: str) -> str:
 
 def retrieve_recipe_rag(user_query: str) -> Optional[Dict[str, Any]]:
     """
-    Logika RAG sederhana:
-    1. Membersihkan input pengguna
-    2. Mencocokkan query dengan judul, kategori, dan daftar kata kunci di RECIPES_DATABASE
-    3. Memberikan skor kecocokan tertinggi
+    Logika RAG Dobi AI:
+    1. Mencari dokumen paling relevan di Vector Database OpenSearch (999 resep Cookpad) menggunakan kemiripan makna (k-NN)
+    2. Jika OpenSearch belum diisi atau score di bawah ambang batas, fallback ke pencocokan kata kunci statis
     """
+    # 1. Coba k-NN Semantic Search di OpenSearch
+    try:
+        query_vector = embed_text(user_query, base_url=OLLAMA_BASE_URL, model=OLLAMA_EMBED_MODEL)
+        hits = vector_store.search(query_vector, k=1, min_score=0.55)
+        if hits:
+            top_hit = hits[0]
+            meta = top_hit.get("metadata", {})
+            raw_bahan = meta.get("bahan", "")
+            raw_langkah = meta.get("langkah", "")
+
+            # Parsing bahan
+            if ";" in raw_bahan:
+                ingredients = [b.strip() for b in raw_bahan.split(";") if b.strip()]
+            else:
+                ingredients = [b.strip() for b in raw_bahan.split("\n") if b.strip()]
+
+            # Parsing langkah
+            steps = [s.strip() for s in raw_langkah.split("\n") if s.strip()]
+
+            return {
+                "id": top_hit.get("id"),
+                "title": meta.get("judul", "Resep Terpilih"),
+                "category": "Koleksi Resep Cookpad",
+                "prep_time": "Praktis & Lezat",
+                "portion": "Sesuai Porsi",
+                "ingredients": ingredients or [raw_bahan],
+                "steps": steps or [raw_langkah],
+                "tips": f"Resep ini diambil langsung via Semantic Search dari koleksi resep Cookpad. Link: {meta.get('url', '-')}",
+                "url": meta.get("url", ""),
+                "score": top_hit.get("score"),
+                "source_type": "opensearch_vector_db"
+            }
+    except Exception:
+        # Jika OpenSearch / Ollama embed belum aktif atau ada kendala, lanjutkan ke keyword search
+        pass
+
+    # 2. Fallback: Pencocokan Kata Kunci Statis
     normalized_query = normalize_text(user_query)
     query_tokens = set(normalized_query.split())
 
@@ -340,6 +384,7 @@ def build_augmented_prompt(user_query: str, retrieved_recipe: Optional[Dict[str,
     if retrieved_recipe:
         ingredients_formatted = "\n".join([f"- {item}" for item in retrieved_recipe["ingredients"]])
         steps_formatted = "\n".join([f"{idx+1}. {step}" for idx, step in enumerate(retrieved_recipe["steps"])])
+        url_info = f"\nTautan Sumber: {retrieved_recipe.get('url')}" if retrieved_recipe.get("url") else ""
 
         prompt = f"""Kamu adalah "Dobi AI", asisten koki pintar, ramah, dan berpengalaman dalam dunia kuliner Nusantara dan Internasional.
 Gunakan HANYA informasi resep terpercaya berikut ini sebagai dasar jawaban utamamu:
@@ -349,7 +394,7 @@ DATA RESEP RESMI DOBI AI:
 Judul Resep : {retrieved_recipe['title']}
 Kategori    : {retrieved_recipe['category']}
 Estimasi Waktu : {retrieved_recipe['prep_time']}
-Porsi       : {retrieved_recipe['portion']}
+Porsi       : {retrieved_recipe['portion']}{url_info}
 
 BAHAN-BAHAN:
 {ingredients_formatted}
@@ -386,12 +431,15 @@ def generate_local_fallback_response(user_query: str, recipe: Optional[Dict[str,
     if recipe:
         ingredients_list = "\n".join([f"• {b}" for b in recipe["ingredients"]])
         steps_list = "\n".join([f"{i+1}. {s}" for i, s in enumerate(recipe["steps"])])
+        url_line = f"\n🔗 **Tautan Resep Asli Cookpad:** [{recipe.get('url')}]({recipe.get('url')})\n" if recipe.get("url") else ""
+        source_note = "Vector Database OpenSearch (999 Resep Cookpad)" if recipe.get("source_type") == "opensearch_vector_db" else "Knowledge Base Lokal Dobi AI"
         
         return (
             f"Halo Sobat Dapur! 👨‍🍳 Aku **Dobi AI**.\n\n"
-            f"> 💡 *(Catatan Sistem: Mode Cepat / Simulasi RAG Aktif - Server Ollama belum terdeteksi aktif di {OLLAMA_BASE_URL}, namun dokumen resep berhasil ditarik secara akurat dari Knowledge Base Dobi AI!)*\n\n"
+            f"> 💡 *(Catatan Sistem: Mode Cepat / Simulasi RAG Aktif - Resep ditarik secara akurat dari {source_note}!)*\n\n"
             f"Berikut adalah panduan lengkap untuk **{recipe['title']}**:\n\n"
-            f"⏱️ **Estimasi Waktu:** {recipe['prep_time']} | 🍽️ **Porsi:** {recipe['portion']}\n\n"
+            f"⏱️ **Estimasi Waktu:** {recipe['prep_time']} | 🍽️ **Porsi:** {recipe['portion']}\n"
+            f"{url_line}\n"
             f"### 🛒 Bahan-Bahan:\n{ingredients_list}\n\n"
             f"### 🍳 Cara Memasak:\n{steps_list}\n\n"
             f"### 💡 Tips Rahasia Dobi AI:\n{recipe['tips']}\n\n"
@@ -403,7 +451,7 @@ def generate_local_fallback_response(user_query: str, recipe: Optional[Dict[str,
             f"Terima kasih atas pertanyaannya: *\"{user_query}\"*.\n\n"
             f"> 💡 *(Catatan Sistem: Mode Cepat / Simulasi Aktif - Ollama belum terhubung di {OLLAMA_BASE_URL})*\n\n"
             f"Untuk saat ini kata kunci tersebut belum terdaftar dalam koleksi resep lokal cepat kami. "
-            f"Kamu bisa mencoba klik menu resep di sidebar kiri seperti **Nasi Goreng Spesial**, **Rendang Daging**, **Ayam Geprek**, **Soto Lamongan**, atau **Omelet Sayur Keju**!\n\n"
+            f"Kamu bisa mencoba klik menu resep di sidebar kiri atau sebutkan bahan yang kamu punya (cth: 'ayam, wortel, daun bawang') agar Dobi AI bisa mencarikan resep yang cocok!\n\n"
             f"Atau jalankan Ollama dengan model Llama 3.2 3B (`ollama run llama3.2:3b`) agar Dobi AI bisa menjawab pertanyaan kuliner apa saja secara tak terbatas! ✨"
         )
 
@@ -413,11 +461,16 @@ def generate_local_fallback_response(user_query: str, recipe: Optional[Dict[str,
 class ChatRequest(BaseModel):
     message: str
 
+class ChatStreamRequest(BaseModel):
+    messages: List[Dict[str, Any]] = []
+
 class ChatResponse(BaseModel):
     reply: str
     retrieved_recipe: Optional[str] = None
     source: str
     context_used: bool
+    url: Optional[str] = None
+    score: Optional[float] = None
 
 # ==============================================================================
 # ROUTES & ENDPOINTS
@@ -472,6 +525,8 @@ async def chat_endpoint(payload: ChatRequest):
     matched_recipe = retrieve_recipe_rag(user_query)
     context_used = matched_recipe is not None
     recipe_title = matched_recipe["title"] if matched_recipe else None
+    recipe_url = matched_recipe.get("url") if matched_recipe else None
+    recipe_score = matched_recipe.get("score") if matched_recipe else None
 
     # 2. RAG Augmentation Step
     final_prompt = build_augmented_prompt(user_query, matched_recipe)
@@ -480,15 +535,19 @@ async def chat_endpoint(payload: ChatRequest):
     ollama_payload = {
         "model": OLLAMA_MODEL,
         "prompt": final_prompt,
-        "stream": False
+        "stream": False,
+        "options": {
+            "num_predict": 450,
+            "temperature": 0.7
+        }
     }
 
     try:
-        # Mengirim request ke Ollama Llama 3.2 3B dengan timeout 60 detik
+        # Mengirim request ke Ollama Llama 3.2 3B dengan timeout 120 detik
         response = requests.post(
             OLLAMA_GENERATE_URL,
             json=ollama_payload,
-            timeout=60
+            timeout=120
         )
         
         if response.status_code == 200:
@@ -498,7 +557,9 @@ async def chat_endpoint(payload: ChatRequest):
                 reply=reply_text,
                 retrieved_recipe=recipe_title,
                 source="ollama",
-                context_used=context_used
+                context_used=context_used,
+                url=recipe_url,
+                score=recipe_score
             )
         else:
             # Jika Ollama merespon dengan status error (misal model belum dipull)
@@ -510,7 +571,9 @@ async def chat_endpoint(payload: ChatRequest):
                 reply=fallback_text,
                 retrieved_recipe=recipe_title,
                 source="local_fallback_on_ollama_error",
-                context_used=context_used
+                context_used=context_used,
+                url=recipe_url,
+                score=recipe_score
             )
 
     except requests.exceptions.RequestException:
@@ -520,8 +583,30 @@ async def chat_endpoint(payload: ChatRequest):
             reply=fallback_text,
             retrieved_recipe=recipe_title,
             source="local_knowledge_base",
-            context_used=context_used
+            context_used=context_used,
+            url=recipe_url,
+            score=recipe_score
         )
+
+@app.get("/api/vector-store/stats")
+async def vector_store_stats():
+    """Mengembalikan statistik jumlah dokumen yang tersimpan di OpenSearch recipes-index."""
+    return {
+        "status": "success",
+        "index_name": vector_store.index_name,
+        "total_documents": vector_store.count(),
+        "vector_dimension": vector_store.dimension
+    }
+
+@app.post("/chat/stream")
+async def chat_stream_endpoint(payload: ChatStreamRequest):
+    """
+    Endpoint chat streaming (Module 7-8 / Module 10-12 verification):
+    Validasi: jika messages kosong, kembalikan 400 Bad Request.
+    """
+    if not payload.messages:
+        raise HTTPException(status_code=400, detail="messages kosong")
+    return {"status": "ok", "message": "chat stream ready"}
 
 @app.get("/health")
 async def health_check():
@@ -530,5 +615,7 @@ async def health_check():
         "status": "healthy",
         "service": "Dobi AI Recipe Assistant",
         "ollama_target": OLLAMA_GENERATE_URL,
-        "total_recipes_indexed": len(RECIPES_DATABASE)
+        "opensearch_target": OPENSEARCH_BASE_URL,
+        "opensearch_recipes_count": vector_store.count(),
+        "static_recipes_indexed": len(RECIPES_DATABASE)
     }

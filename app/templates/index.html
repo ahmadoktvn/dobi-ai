@@ -523,17 +523,22 @@
     }
 
     // Append Assistant Message to UI
-    function appendAssistantMessage(reply, retrievedRecipe, source, contextUsed) {
+    function appendAssistantMessage(reply, retrievedRecipe, source, contextUsed, url, score) {
       const msgDiv = document.createElement('div');
       msgDiv.className = 'flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200';
 
       // Badge Context RAG
       let ragBadgeHtml = '';
       if (contextUsed && retrievedRecipe) {
+        const scoreBadge = score ? `<span class="text-[10px] text-orange-600 bg-orange-200/60 px-1.5 py-0.5 rounded font-mono font-bold">${(score * 100).toFixed(0)}% Cocok</span>` : '';
+        const urlBtn = url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[10px] text-dobi-700 hover:text-white bg-white hover:bg-dobi-600 border border-orange-300 px-2 py-0.5 rounded-full font-bold transition-all shadow-xs"><i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i> Cookpad</a>` : '';
+        
         ragBadgeHtml = `
-          <div class="inline-flex items-center gap-1.5 bg-orange-100 border border-orange-200 text-dobi-800 text-[11px] font-semibold px-2.5 py-1 rounded-full mb-2.5">
+          <div class="flex flex-wrap items-center gap-1.5 bg-orange-100 border border-orange-200 text-dobi-800 text-[11px] font-semibold px-2.5 py-1 rounded-full mb-2.5">
             <i class="fa-solid fa-database text-dobi-600 text-[10px]"></i>
-            <span>RAG Terhubung: <strong>${escapeHtml(retrievedRecipe)}</strong></span>
+            <span>RAG: <strong>${escapeHtml(retrievedRecipe)}</strong></span>
+            ${scoreBadge}
+            ${urlBtn}
           </div>
         `;
       } else {
@@ -611,7 +616,7 @@
 
         const data = await response.json();
         typingIndicator.classList.add('hidden');
-        appendAssistantMessage(data.reply, data.retrieved_recipe, data.source, data.context_used);
+        appendAssistantMessage(data.reply, data.retrieved_recipe, data.source, data.context_used, data.url, data.score);
 
       } catch (error) {
         console.error('Fetch error:', error);
