@@ -761,7 +761,7 @@
           <div class="flex items-center justify-between border-t border-slate-100 pt-2 mt-2.5 text-[9px] text-slate-400">
             <span class="flex items-center gap-1">
               <i class="fa-solid fa-microchip text-[8px] text-dobi-500"></i>
-              Sumber: ${source === 'ollama' ? 'Llama 3.2 3B (Ollama)' : 'OpenSearch Vector DB'}
+              Sumber: ${source && source.includes('ollama') ? 'Llama 3.2 3B (Ollama)' : 'OpenSearch Vector DB'}
             </span>
             <span>${time || getCurrentTime()}</span>
           </div>
