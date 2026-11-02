@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full w-full overflow-hidden">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Dobi AI - Smart Recipe Assistant</title>
   
   <!-- Google Fonts: Plus Jakarta Sans -->
@@ -46,10 +46,29 @@
   </script>
 
   <style>
+    /* Absolute Lock on Viewport for Mobile Devices */
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: fixed;
+      inset: 0;
+    }
+
+    /* Prevent Mobile Browser auto-zoom on input focus */
+    @media (max-width: 768px) {
+      input, textarea, select {
+        font-size: 16px !important;
+      }
+    }
+
     /* Custom Scrollbar */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
     }
     ::-webkit-scrollbar-track {
       background: #f8fafc;
@@ -66,18 +85,18 @@
     .prose-dobi h1, .prose-dobi h2, .prose-dobi h3 {
       font-weight: 700;
       color: #1e293b;
-      margin-top: 0.75rem;
-      margin-bottom: 0.35rem;
+      margin-top: 0.6rem;
+      margin-bottom: 0.3rem;
     }
-    .prose-dobi h3 { font-size: 1.05rem; color: #ea580c; }
+    .prose-dobi h3 { font-size: 1rem; color: #ea580c; }
     .prose-dobi p {
       margin-bottom: 0.5rem;
-      line-height: 1.65;
+      line-height: 1.6;
     }
     .prose-dobi ul, .prose-dobi ol {
       margin-left: 1.25rem;
       margin-bottom: 0.5rem;
-      line-height: 1.65;
+      line-height: 1.6;
     }
     .prose-dobi ul { list-style-type: disc; }
     .prose-dobi ol { list-style-type: decimal; }
@@ -87,7 +106,7 @@
       background-color: #fff7ed;
       border-radius: 0 0.375rem 0.375rem 0;
       margin: 0.5rem 0;
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: #9a3412;
       padding-top: 0.25rem;
       padding-bottom: 0.25rem;
@@ -112,129 +131,121 @@
       border-right-width: 0 !important;
       padding: 0 !important;
     }
-
-    @keyframes pulse-glow {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.8; transform: scale(1.03); }
-    }
-    .glow-orange {
-      animation: pulse-glow 2s infinite ease-in-out;
-    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden antialiased">
+<body class="bg-slate-50 text-slate-800 font-sans h-full w-full flex overflow-hidden antialiased">
 
   <!-- ===================================================================== -->
-  <!-- SIDEBAR (LEFT) - COLLAPSIBLE ON MOBILE & DESKTOP -->
+  <!-- SIDEBAR (LEFT) - FULL MOBILE DRAWER & DESKTOP COLLAPSIBLE -->
   <!-- ===================================================================== -->
-  <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-80 bg-white border-r border-slate-200 flex flex-col -translate-x-full md:relative md:translate-x-0 shadow-xl md:shadow-none shrink-0 overflow-hidden">
+  <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-72 sm:w-80 h-full max-h-[100dvh] bg-white border-r border-slate-200 flex flex-col -translate-x-full md:relative md:translate-x-0 shadow-2xl md:shadow-none shrink-0 overflow-hidden">
     
     <!-- Sidebar Header: Logo, Brand & Close Button -->
-    <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-orange-50/70 via-white to-orange-50/30 shrink-0">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-dobi-600 via-dobi-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-dobi-500/25 shrink-0">
-          <i class="fa-solid fa-fire-burner text-lg"></i>
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-orange-50/70 via-white to-orange-50/30 shrink-0">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-dobi-600 via-dobi-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-dobi-500/25 shrink-0">
+          <i class="fa-solid fa-fire-burner text-base"></i>
         </div>
         <div class="overflow-hidden">
           <div class="flex items-center gap-1.5">
-            <h1 class="font-extrabold text-lg tracking-tight text-slate-800">Dobi <span class="text-dobi-500">AI</span></h1>
-            <span class="bg-dobi-100 text-dobi-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-dobi-200">Vector RAG</span>
+            <h1 class="font-extrabold text-base tracking-tight text-slate-800">Dobi <span class="text-dobi-500">AI</span></h1>
+            <span class="bg-dobi-100 text-dobi-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-dobi-200">Vector RAG</span>
           </div>
-          <p class="text-[11px] text-slate-400 font-medium truncate">Smart Recipe Assistant</p>
+          <p class="text-[10px] text-slate-400 font-medium truncate">Smart Recipe Assistant</p>
         </div>
       </div>
       
       <!-- Close Button (Mobile & Desktop) -->
-      <button onclick="toggleSidebar()" title="Sembunyikan Sidebar" class="text-slate-400 hover:text-dobi-600 hover:bg-orange-50 p-2 rounded-xl transition-colors">
+      <button onclick="toggleSidebar(false)" title="Tutup Sidebar" class="text-slate-400 hover:text-dobi-600 hover:bg-orange-50 p-2 rounded-xl transition-colors">
         <i class="fa-solid fa-angles-left text-sm"></i>
       </button>
     </div>
 
     <!-- New Chat Button -->
-    <div class="p-3.5 sm:p-4 shrink-0">
-      <button onclick="startNewChat()" class="w-full flex items-center justify-center gap-2.5 py-3 px-4 bg-gradient-to-r from-dobi-500 to-dobi-600 hover:from-dobi-600 hover:to-dobi-700 text-white font-semibold text-sm rounded-2xl shadow-md shadow-dobi-500/25 transition-all duration-200 active:scale-[0.98]">
-        <i class="fa-solid fa-plus text-xs"></i>
+    <div class="p-3 shrink-0">
+      <button onclick="startNewChat()" class="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 bg-gradient-to-r from-dobi-500 to-dobi-600 hover:from-dobi-600 hover:to-dobi-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-dobi-500/25 transition-all duration-200 active:scale-[0.98]">
+        <i class="fa-solid fa-plus text-[10px]"></i>
         <span>Mulai Obrolan Baru</span>
       </button>
     </div>
 
     <!-- Scrollable Dynamic Chat History Area -->
-    <div class="flex-1 overflow-y-auto px-3.5 sm:px-4 pb-4 space-y-4">
+    <div class="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-3">
       
       <!-- Header Riwayat Chat -->
       <div class="flex items-center justify-between px-1">
-        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-          <i class="fa-solid fa-clock-rotate-left text-dobi-500 text-[11px]"></i>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <i class="fa-solid fa-clock-rotate-left text-dobi-500 text-[10px]"></i>
           Riwayat Obrolan
         </span>
-        <button onclick="clearAllHistory()" title="Hapus Semua Riwayat" class="text-[11px] text-slate-400 hover:text-rose-500 transition-colors p-1 rounded">
+        <button onclick="clearAllHistory()" title="Hapus Semua Riwayat" class="text-[10px] text-slate-400 hover:text-rose-500 transition-colors p-1 rounded">
           <i class="fa-regular fa-trash-can mr-1"></i>Hapus
         </button>
       </div>
 
       <!-- Container Item Riwayat Dinamis -->
-      <div id="historyList" class="space-y-1.5">
+      <div id="historyList" class="space-y-1">
         <!-- Rendered via JavaScript from localStorage -->
       </div>
 
     </div>
 
     <!-- Sidebar Footer / Status Badge -->
-    <div class="p-3.5 border-t border-slate-100 bg-slate-50/70 shrink-0">
+    <div class="p-3 border-t border-slate-100 bg-slate-50/70 shrink-0">
       <div class="flex items-center justify-between text-xs">
-        <div class="flex items-center gap-2.5">
-          <span class="relative flex h-2.5 w-2.5">
+        <div class="flex items-center gap-2">
+          <span class="relative flex h-2 w-2">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
           <div>
-            <p class="font-bold text-slate-700 text-[11px] flex items-center gap-1">
-              <span>OpenSearch k-NN</span>
+            <p class="font-bold text-slate-700 text-[10px] flex items-center gap-1">
+              <span>OpenSearch</span>
               <span class="text-slate-300">•</span>
               <span>Llama 3.2</span>
             </p>
-            <p class="text-[10px] text-slate-400" id="dbStatusText">999 Resep Terindeks</p>
+            <p class="text-[9px] text-slate-400" id="dbStatusText">999 Resep Terindeks</p>
           </div>
         </div>
-        <span class="text-[10px] font-mono bg-orange-100 text-dobi-700 font-bold px-1.5 py-0.5 rounded border border-orange-200">RAG v2</span>
+        <span class="text-[9px] font-mono bg-orange-100 text-dobi-700 font-bold px-1.5 py-0.5 rounded border border-orange-200">RAG v2</span>
       </div>
     </div>
 
   </aside>
 
   <!-- Mobile Overlay Backdrop -->
-  <div id="mobileOverlay" onclick="toggleSidebar(false)" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-30 hidden transition-opacity duration-300"></div>
+  <div id="mobileOverlay" onclick="toggleSidebar(false)" class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs hidden transition-opacity duration-300"></div>
 
   <!-- ===================================================================== -->
   <!-- MAIN CHAT AREA (RIGHT) -->
   <!-- ===================================================================== -->
-  <main class="flex-1 flex flex-col h-screen bg-[#fafbfc] relative overflow-hidden min-w-0">
+  <main class="flex-1 flex flex-col h-full min-h-0 min-w-0 bg-[#fafbfc] relative overflow-hidden">
     
-    <!-- Top Header Bar -->
-    <header class="h-16 border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-3.5 sm:px-6 flex items-center justify-between z-10 shrink-0">
-      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+    <!-- Top Header Bar (Fixed at Top, Never Scrolls Away) -->
+    <header class="h-14 sm:h-16 shrink-0 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between z-30">
+      <div class="flex items-center gap-2 sm:gap-3 min-w-0">
         
-        <!-- Toggle Sidebar Button (Visible on Both Mobile & Desktop) -->
-        <button onclick="toggleSidebar()" id="sidebarToggleBtn" title="Buka/Tutup Sidebar" class="text-slate-600 hover:text-dobi-600 p-2 sm:p-2.5 rounded-xl hover:bg-orange-50 border border-slate-200 hover:border-dobi-300 transition-all duration-150 shrink-0">
-          <i class="fa-solid fa-bars-staggered text-sm sm:text-base"></i>
+        <!-- Toggle Sidebar Button (Highlighted and Easy to Tap) -->
+        <button onclick="toggleSidebar()" id="sidebarToggleBtn" title="Buka/Tutup Sidebar" class="text-dobi-600 bg-orange-50 hover:bg-orange-100 p-2 rounded-xl border border-orange-200 hover:border-dobi-400 transition-all duration-150 shrink-0 shadow-xs active:scale-95">
+          <i class="fa-solid fa-bars text-sm sm:text-base"></i>
         </button>
 
         <!-- Chef Avatar -->
         <div class="relative shrink-0">
-          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-dobi-500 to-amber-400 flex items-center justify-center text-white shadow-sm font-bold text-base sm:text-lg">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-dobi-500 to-amber-400 flex items-center justify-center text-white shadow-sm font-bold text-sm sm:text-lg">
             🍳
           </div>
-          <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+          <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
         </div>
 
         <!-- Title & Subtitle -->
         <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <h2 class="font-bold text-sm sm:text-base text-slate-800 truncate">Dobi AI Assistant</h2>
-            <span class="hidden sm:inline-block text-[10px] bg-gradient-to-r from-dobi-500 to-amber-500 text-white font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">Koki Cerdas</span>
+          <div class="flex items-center gap-1.5">
+            <h2 class="font-bold text-xs sm:text-base text-slate-800 truncate">Dobi AI Assistant</h2>
+            <span class="hidden sm:inline-block text-[10px] bg-gradient-to-r from-dobi-500 to-amber-500 text-white font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">Koki</span>
           </div>
-          <p class="text-[11px] text-slate-400 flex items-center gap-1.5 truncate">
-            <span>999 Resep Cookpad Terhubung</span>
+          <p class="text-[10px] sm:text-[11px] text-slate-400 flex items-center gap-1 truncate">
+            <span>999 Resep Cookpad</span>
             <span>•</span>
             <span class="text-emerald-600 font-medium">Online</span>
           </p>
@@ -243,51 +254,51 @@
 
       <!-- Header Action Buttons -->
       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        <button onclick="showInfoModal()" title="Tentang Dobi AI & RAG" class="w-9 h-9 rounded-xl border border-slate-200 text-slate-500 hover:text-dobi-600 hover:border-dobi-300 hover:bg-orange-50 flex items-center justify-center transition-colors">
-          <i class="fa-solid fa-circle-question text-sm"></i>
+        <button onclick="showInfoModal()" title="Tentang Dobi AI & RAG" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200 text-slate-500 hover:text-dobi-600 hover:border-dobi-300 hover:bg-orange-50 flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-circle-question text-xs sm:text-sm"></i>
         </button>
-        <button onclick="startNewChat()" title="Obrolan Baru" class="w-9 h-9 rounded-xl border border-slate-200 text-slate-500 hover:text-dobi-600 hover:border-dobi-300 hover:bg-orange-50 flex items-center justify-center transition-colors">
-          <i class="fa-solid fa-plus text-sm"></i>
+        <button onclick="startNewChat()" title="Obrolan Baru" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200 text-slate-500 hover:text-dobi-600 hover:border-dobi-300 hover:bg-orange-50 flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
         </button>
       </div>
     </header>
 
-    <!-- Chat Messages Scroll Area -->
-    <div id="chatContainer" class="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-5 sm:space-y-6">
+    <!-- Chat Messages Scroll Area (Only this container scrolls) -->
+    <div id="chatContainer" class="flex-1 min-h-0 w-full overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-5 overscroll-contain">
       
       <!-- Welcome Message Card -->
-      <div id="welcomeCard" class="max-w-2xl mx-auto my-4 sm:my-8 bg-white rounded-3xl border border-orange-100 p-5 sm:p-7 shadow-sm shadow-orange-100/40">
-        <div class="flex items-center gap-3.5 mb-4">
-          <div class="w-12 h-12 rounded-2xl bg-orange-100 text-dobi-600 flex items-center justify-center text-2xl shadow-inner shrink-0">
+      <div id="welcomeCard" class="max-w-2xl mx-auto my-3 sm:my-8 bg-white rounded-3xl border border-orange-100 p-4 sm:p-7 shadow-sm shadow-orange-100/40">
+        <div class="flex items-center gap-3 mb-3.5">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-orange-100 text-dobi-600 flex items-center justify-center text-xl sm:text-2xl shadow-inner shrink-0">
             👨‍🍳
           </div>
           <div>
-            <h3 class="text-base sm:text-lg font-bold text-slate-800">Halo! Selamat Datang di <span class="text-dobi-500">Dobi AI</span></h3>
-            <p class="text-xs text-slate-500">Asisten Koki Cerdas Berbasis 999 Resep Terverifikasi & Vector RAG</p>
+            <h3 class="text-sm sm:text-lg font-bold text-slate-800">Halo! Selamat Datang di <span class="text-dobi-500">Dobi AI</span></h3>
+            <p class="text-[11px] sm:text-xs text-slate-500">Asisten Koki Cerdas Berbasis 999 Resep Cookpad & Vector RAG</p>
           </div>
         </div>
 
-        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-5">
-          Tanyakan resep apa saja atau sebutkan bahan yang kamu punya di rumah (contoh: <em>"punya sayap ayam, sereh, dan jeruk nipis"</em>). Dobi AI akan mencari resep yang paling pas dan memandumu memasak langkah demi langkah!
+        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-4">
+          Tulis bahan apa saja yang ada di kulkasmu (contoh: <em>"sayap ayam, sereh, daun jeruk, koya"</em>). Dobi AI akan mencari resep yang paling pas dari 999 database dan memandumu memasak langkah demi langkah!
         </p>
 
         <!-- Quick Suggestion Chips -->
-        <div class="space-y-2.5">
-          <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+        <div class="space-y-2">
+          <p class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <i class="fa-solid fa-wand-magic-sparkles text-dobi-500"></i>
             Coba Tanyakan Langsung:
           </p>
-          <div class="flex flex-wrap gap-2">
-            <button onclick="askPresetPrompt('Saya punya sayap ayam, sereh, daun salam, dan koya, enaknya masak apa ya?')" class="text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95 text-left">
+          <div class="flex flex-wrap gap-1.5 sm:gap-2">
+            <button onclick="askPresetPrompt('Saya punya sayap ayam, sereh, daun salam, dan koya, enaknya masak apa ya?')" class="text-[11px] sm:text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-2.5 py-1.5 rounded-xl transition-all duration-150 active:scale-95 text-left">
               🍗 Sayap ayam, sereh & koya
             </button>
-            <button onclick="askPresetPrompt('Resep ayam masak merah simple dan bumbunya')" class="text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95 text-left">
+            <button onclick="askPresetPrompt('Resep ayam masak merah simple dan bumbunya')" class="text-[11px] sm:text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-2.5 py-1.5 rounded-xl transition-all duration-150 active:scale-95 text-left">
               🍲 Resep Ayam Masak Merah
             </button>
-            <button onclick="askPresetPrompt('Bagaimana cara membuat Nasi Goreng Spesial ala resto?')" class="text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95 text-left">
+            <button onclick="askPresetPrompt('Bagaimana cara membuat Nasi Goreng Spesial ala resto?')" class="text-[11px] sm:text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-2.5 py-1.5 rounded-xl transition-all duration-150 active:scale-95 text-left">
               🍳 Nasi Goreng Spesial Resto
             </button>
-            <button onclick="askPresetPrompt('Punya telur, tahu, dan kecap manis, masak apa yang praktis?')" class="text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95 text-left">
+            <button onclick="askPresetPrompt('Punya telur, tahu, dan kecap manis, masak apa yang praktis?')" class="text-[11px] sm:text-xs font-medium bg-orange-50/80 hover:bg-dobi-500 hover:text-white text-dobi-700 border border-orange-200/80 px-2.5 py-1.5 rounded-xl transition-all duration-150 active:scale-95 text-left">
               🥚 Telur, tahu & kecap manis
             </button>
           </div>
@@ -295,16 +306,16 @@
       </div>
 
       <!-- Dynamic Messages Bubble Container -->
-      <div id="messagesList" class="max-w-3xl mx-auto space-y-4 sm:space-y-5"></div>
+      <div id="messagesList" class="max-w-3xl mx-auto space-y-3.5 sm:space-y-5"></div>
 
       <!-- Typing Indicator -->
       <div id="typingIndicator" class="max-w-3xl mx-auto hidden">
-        <div class="flex items-start gap-3">
-          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-dobi-500 to-amber-400 text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-sm">
+        <div class="flex items-start gap-2.5 sm:gap-3">
+          <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-dobi-500 to-amber-400 text-white flex items-center justify-center text-xs sm:text-sm font-bold shrink-0 shadow-sm">
             🍳
           </div>
-          <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-3.5 sm:p-4 shadow-sm flex items-center gap-2.5">
-            <span class="text-xs font-semibold text-dobi-600">Dobi AI sedang meracik resep</span>
+          <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-3 sm:p-4 shadow-sm flex items-center gap-2">
+            <span class="text-[11px] sm:text-xs font-semibold text-dobi-600">Dobi AI sedang meracik resep</span>
             <div class="flex items-center gap-1">
               <span class="w-1.5 h-1.5 bg-dobi-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
               <span class="w-1.5 h-1.5 bg-dobi-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
@@ -316,8 +327,8 @@
 
     </div>
 
-    <!-- Bottom Input Area (Sticky & Responsive) -->
-    <div class="border-t border-slate-200/80 bg-white/95 backdrop-blur-md p-3 sm:p-4 shrink-0">
+    <!-- Bottom Input Area (Fixed at Bottom, Never Cut Off) -->
+    <div class="shrink-0 w-full border-t border-slate-200/80 bg-white/95 backdrop-blur-md p-2.5 sm:p-4 z-30 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <div class="max-w-3xl mx-auto">
         <form id="chatForm" onsubmit="handleChatSubmit(event)" class="relative flex items-center gap-2">
           
@@ -325,9 +336,9 @@
             <input 
               type="text" 
               id="chatInput" 
-              placeholder="Tulis bahan di kulkas atau nama masakan... (cth: 'ayam, sereh, jeruk nipis')" 
+              placeholder="Tulis bahan atau nama masakan..." 
               autocomplete="off"
-              class="w-full bg-slate-50 border border-slate-200 focus:border-dobi-500 focus:bg-white text-slate-800 text-xs sm:text-sm rounded-2xl pl-4 pr-10 py-3 sm:py-3.5 outline-none transition-all duration-200 shadow-inner placeholder:text-slate-400"
+              class="w-full bg-slate-50 border border-slate-200 focus:border-dobi-500 focus:bg-white text-slate-800 text-sm sm:text-sm rounded-2xl pl-3.5 sm:pl-4 pr-10 py-2.5 sm:py-3.5 outline-none transition-all duration-200 shadow-inner placeholder:text-slate-400"
             />
             <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300">
               <i class="fa-solid fa-utensils text-xs"></i>
@@ -337,13 +348,13 @@
           <button 
             type="submit" 
             id="sendBtn" 
-            class="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-gradient-to-tr from-dobi-500 to-dobi-600 hover:from-dobi-600 hover:to-dobi-700 text-white font-semibold flex items-center justify-center shadow-md shadow-dobi-500/25 transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            class="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-gradient-to-tr from-dobi-500 to-dobi-600 hover:from-dobi-600 hover:to-dobi-700 text-white font-semibold flex items-center justify-center shadow-md shadow-dobi-500/25 transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
             <i class="fa-solid fa-paper-plane text-xs sm:text-sm"></i>
           </button>
         </form>
 
-        <p class="text-[10px] sm:text-[11px] text-center text-slate-400 mt-2 font-medium">
+        <p class="text-[9px] sm:text-[10px] text-center text-slate-400 mt-1.5 font-medium">
           Dobi AI memadukan OpenSearch Vector DB (999 Resep) dan LLM Llama 3.2 3B untuk hasil akurat.
         </p>
       </div>
@@ -354,11 +365,11 @@
   <!-- ===================================================================== -->
   <!-- MODAL: INFO ARSITEKTUR & CARA KERJA -->
   <!-- ===================================================================== -->
-  <div id="infoModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+  <div id="infoModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-200">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-xl bg-orange-100 text-dobi-600 flex items-center justify-center text-base">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-orange-100 text-dobi-600 flex items-center justify-center text-sm">
             <i class="fa-solid fa-brain"></i>
           </div>
           <h3 class="font-bold text-slate-800 text-sm sm:text-base">Arsitektur & Cara Kerja Dobi AI</h3>
@@ -368,7 +379,7 @@
         </button>
       </div>
 
-      <div class="py-4 space-y-3 text-xs text-slate-600 leading-relaxed max-h-[70vh] overflow-y-auto">
+      <div class="py-3.5 space-y-3 text-xs text-slate-600 leading-relaxed max-h-[60vh] overflow-y-auto">
         <div class="p-3 bg-orange-50/70 border border-orange-100 rounded-2xl">
           <p class="font-bold text-dobi-800 mb-1 flex items-center gap-1.5">
             <i class="fa-solid fa-database text-dobi-500"></i>
@@ -496,7 +507,6 @@
       const sessions = getSessions();
       renderHistoryList(sessions);
 
-      // Load latest session if available, else start clean
       if (sessions.length > 0) {
         loadSession(sessions[0].id);
       } else {
@@ -507,10 +517,10 @@
     function renderHistoryList(sessions) {
       if (!sessions || sessions.length === 0) {
         historyList.innerHTML = `
-          <div class="text-center py-8 px-2 text-slate-400">
-            <i class="fa-regular fa-comments text-2xl text-slate-300 mb-2"></i>
-            <p class="text-xs font-medium">Belum ada riwayat percakapan</p>
-            <p class="text-[10px] text-slate-400 mt-0.5">Tanyakan resep masakan untuk memulai!</p>
+          <div class="text-center py-6 px-2 text-slate-400">
+            <i class="fa-regular fa-comments text-xl text-slate-300 mb-1.5"></i>
+            <p class="text-xs font-medium">Belum ada riwayat</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">Tanyakan resep untuk memulai!</p>
           </div>
         `;
         return;
@@ -523,19 +533,18 @@
           : 'hover:bg-slate-50 border-transparent text-slate-600 hover:text-slate-800';
 
         return `
-          <div class="group relative flex items-center justify-between p-2.5 rounded-xl border ${activeBg} transition-all duration-150 cursor-pointer">
-            <div onclick="loadSession('${session.id}')" class="flex items-center gap-2.5 overflow-hidden flex-1 min-w-0 pr-2">
-              <span class="w-6 h-6 rounded-lg ${isActive ? 'bg-dobi-500 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-orange-100 group-hover:text-dobi-600'} flex items-center justify-center text-[10px] shrink-0 transition-colors">
+          <div class="group relative flex items-center justify-between p-2 rounded-xl border ${activeBg} transition-all duration-150 cursor-pointer">
+            <div onclick="loadSession('${session.id}')" class="flex items-center gap-2 overflow-hidden flex-1 min-w-0 pr-1.5">
+              <span class="w-5 h-5 rounded-md ${isActive ? 'bg-dobi-500 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-orange-100 group-hover:text-dobi-600'} flex items-center justify-center text-[9px] shrink-0 transition-colors">
                 <i class="fa-solid fa-utensils"></i>
               </span>
               <div class="overflow-hidden min-w-0 flex-1">
-                <p class="text-xs font-semibold truncate leading-tight">${escapeHtml(session.title)}</p>
-                <span class="text-[10px] text-slate-400 font-normal">${formatDate(session.updatedAt || session.createdAt)}</span>
+                <p class="text-[11px] sm:text-xs font-semibold truncate leading-tight">${escapeHtml(session.title)}</p>
+                <span class="text-[9px] text-slate-400 font-normal">${formatDate(session.updatedAt || session.createdAt)}</span>
               </div>
             </div>
             
-            <!-- Delete Item Button -->
-            <button onclick="deleteSession('${session.id}', event)" title="Hapus obrolan ini" class="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-500 rounded transition-opacity shrink-0">
+            <button onclick="deleteSession('${session.id}', event)" title="Hapus obrolan ini" class="opacity-60 sm:opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-500 rounded transition-opacity shrink-0">
               <i class="fa-regular fa-trash-can text-xs"></i>
             </button>
           </div>
@@ -550,10 +559,8 @@
       chatInput.value = '';
       chatInput.focus();
 
-      // Refresh history active state
       renderHistoryList(getSessions());
 
-      // Auto close sidebar on mobile after clicking new chat
       if (window.innerWidth < 768) {
         toggleSidebar(false);
       }
@@ -568,7 +575,6 @@
       messagesList.innerHTML = '';
       if (welcomeCard) welcomeCard.classList.add('hidden');
 
-      // Render all messages in the session
       session.messages.forEach(msg => {
         if (msg.role === 'user') {
           renderUserBubble(msg.text, msg.time);
@@ -580,7 +586,6 @@
       renderHistoryList(sessions);
       scrollToBottom();
 
-      // Auto close sidebar on mobile
       if (window.innerWidth < 768) {
         toggleSidebar(false);
       }
@@ -592,13 +597,12 @@
       const currentTime = getCurrentTime();
 
       if (!session) {
-        // Create new session
         const newId = 'session_' + Date.now();
         currentSessionId = newId;
 
         session = {
           id: newId,
-          title: userText.slice(0, 32) + (userText.length > 32 ? '...' : ''),
+          title: userText.slice(0, 28) + (userText.length > 28 ? '...' : ''),
           createdAt: Date.now(),
           updatedAt: Date.now(),
           messages: []
@@ -608,14 +612,12 @@
         session.updatedAt = Date.now();
       }
 
-      // Add User Message
       session.messages.push({
         role: 'user',
         text: userText,
         time: currentTime
       });
 
-      // Add Assistant Message
       session.messages.push({
         role: 'assistant',
         reply: assistantData.reply,
@@ -627,7 +629,6 @@
         time: currentTime
       });
 
-      // Re-sort sessions by latest update
       sessions.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
       saveSessions(sessions);
@@ -709,14 +710,14 @@
       if (welcomeCard) welcomeCard.classList.add('hidden');
 
       const msgDiv = document.createElement('div');
-      msgDiv.className = 'flex items-start justify-end gap-2.5 sm:gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200';
+      msgDiv.className = 'flex items-start justify-end gap-2 sm:gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200';
       msgDiv.innerHTML = `
-        <div class="max-w-[85%] sm:max-w-[75%] bg-gradient-to-tr from-dobi-500 to-orange-500 text-white rounded-2xl rounded-tr-none px-3.5 sm:px-4 py-2.5 sm:py-3 shadow-md shadow-dobi-500/15">
+        <div class="max-w-[85%] sm:max-w-[75%] bg-gradient-to-tr from-dobi-500 to-orange-500 text-white rounded-2xl rounded-tr-none px-3.5 sm:px-4 py-2 sm:py-2.5 shadow-md shadow-dobi-500/15">
           <p class="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</p>
-          <span class="block text-[10px] text-orange-200 text-right mt-1 font-medium">${time || getCurrentTime()}</span>
+          <span class="block text-[9px] text-orange-200 text-right mt-1 font-medium">${time || getCurrentTime()}</span>
         </div>
-        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold shrink-0 shadow-sm">
-          <i class="fa-solid fa-user text-[11px]"></i>
+        <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] sm:text-xs font-bold shrink-0 shadow-sm">
+          <i class="fa-solid fa-user"></i>
         </div>
       `;
       messagesList.appendChild(msgDiv);
@@ -724,16 +725,16 @@
 
     function renderAssistantBubble(reply, retrievedRecipe, source, contextUsed, url, score, time) {
       const msgDiv = document.createElement('div');
-      msgDiv.className = 'flex items-start gap-2.5 sm:gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200';
+      msgDiv.className = 'flex items-start gap-2 sm:gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200';
 
       let ragBadgeHtml = '';
       if (contextUsed && retrievedRecipe) {
-        const scoreBadge = score ? `<span class="text-[10px] text-orange-600 bg-orange-200/60 px-1.5 py-0.5 rounded font-mono font-bold">${(score * 100).toFixed(0)}% Cocok</span>` : '';
-        const urlBtn = url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[10px] text-dobi-700 hover:text-white bg-white hover:bg-dobi-600 border border-orange-300 px-2 py-0.5 rounded-full font-bold transition-all shadow-xs"><i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i> Cookpad</a>` : '';
+        const scoreBadge = score ? `<span class="text-[9px] text-orange-600 bg-orange-200/60 px-1.5 py-0.5 rounded font-mono font-bold">${(score * 100).toFixed(0)}% Cocok</span>` : '';
+        const urlBtn = url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[9px] text-dobi-700 hover:text-white bg-white hover:bg-dobi-600 border border-orange-300 px-2 py-0.5 rounded-full font-bold transition-all shadow-xs"><i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i> Cookpad</a>` : '';
         
         ragBadgeHtml = `
-          <div class="flex flex-wrap items-center gap-1.5 bg-orange-100 border border-orange-200 text-dobi-800 text-[11px] font-semibold px-2.5 py-1 rounded-full mb-2.5">
-            <i class="fa-solid fa-database text-dobi-600 text-[10px]"></i>
+          <div class="flex flex-wrap items-center gap-1.5 bg-orange-100 border border-orange-200 text-dobi-800 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full mb-2">
+            <i class="fa-solid fa-database text-dobi-600 text-[9px]"></i>
             <span>RAG: <strong>${escapeHtml(retrievedRecipe)}</strong></span>
             ${scoreBadge}
             ${urlBtn}
@@ -741,25 +742,25 @@
         `;
       } else {
         ragBadgeHtml = `
-          <div class="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-medium px-2.5 py-0.5 rounded-full mb-2">
-            <i class="fa-solid fa-sparkles text-amber-500 text-[10px]"></i>
+          <div class="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-full mb-1.5">
+            <i class="fa-solid fa-sparkles text-amber-500 text-[9px]"></i>
             <span>Respon AI Kuliner</span>
           </div>
         `;
       }
 
       msgDiv.innerHTML = `
-        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-dobi-500 to-amber-400 text-white flex items-center justify-center text-xs sm:text-sm font-bold shrink-0 shadow-sm">
+        <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-dobi-500 to-amber-400 text-white flex items-center justify-center text-xs sm:text-sm font-bold shrink-0 shadow-sm">
           🍳
         </div>
-        <div class="max-w-[92%] sm:max-w-[82%] bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-3.5 sm:p-5 shadow-sm">
+        <div class="max-w-[92%] sm:max-w-[82%] bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-3 sm:p-4 shadow-sm">
           ${ragBadgeHtml}
           <div class="prose-dobi text-xs sm:text-sm text-slate-700">
             ${renderMarkdown(reply)}
           </div>
-          <div class="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-3 text-[10px] text-slate-400">
+          <div class="flex items-center justify-between border-t border-slate-100 pt-2 mt-2.5 text-[9px] text-slate-400">
             <span class="flex items-center gap-1">
-              <i class="fa-solid fa-microchip text-[9px] text-dobi-500"></i>
+              <i class="fa-solid fa-microchip text-[8px] text-dobi-500"></i>
               Sumber: ${source === 'ollama' ? 'Llama 3.2 3B (Ollama)' : 'OpenSearch Vector DB'}
             </span>
             <span>${time || getCurrentTime()}</span>
@@ -802,7 +803,6 @@
 
         renderAssistantBubble(data.reply, data.retrieved_recipe, data.source, data.context_used, data.url, data.score, getCurrentTime());
         
-        // Save to dynamic localStorage session
         saveMessageToCurrentSession(message, data);
 
       } catch (error) {
