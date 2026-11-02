@@ -293,16 +293,61 @@ def normalize_text(text: str) -> str:
     text = re.sub(r'[^\w\s]', ' ', text)
     return text.strip()
 
+# Daftar kata sapaan, basa-basi, dan perkenalan umum
+GREETING_WORDS = {
+    "halo", "hallo", "hai", "hi", "hey", "hei", "helo", "p", "assalamualaikum",
+    "pagi", "siang", "sore", "malam", "selamat pagi", "selamat siang", "selamat sore", "selamat malam",
+    "tes", "test", "testing", "ping", "kamu siapa", "siapa kamu", "terima kasih", "makasih", "thanks", "ok", "oke", "siap",
+    "apa kabar", "gimana kabarnya", "bisa apa", "kamu bisa apa", "assalamu'alaikum"
+}
+
+# Kata kunci yang menunjukkan niat nyata mencari resep / memasak
+RECIPE_INTENT_KEYWORDS = [
+    "resep", "masak", "cara buat", "cara membuat", "bumbu", "bahan", "punya", "ada",
+    "makanan", "kuliner", "goreng", "rebus", "tumis", "panggang", "bakar", "sayur",
+    "sop", "soto", "ayam", "daging", "sapi", "kambing", "ikan", "udang", "cumi",
+    "telur", "tahu", "tempe", "nasi", "mie", "sambal", "camilan", "sarapan", "menu",
+    "diet", "enak", "bikin", "olahan", "kukus", "pedas", "manis", "asin", "gurih"
+]
+
+def is_greeting_or_chitchat(query: str) -> bool:
+    """Mendeteksi apakah pesan pengguna hanya berupa sapaan atau obrolan santai."""
+    norm = normalize_text(query)
+    if not norm or norm in GREETING_WORDS:
+        return True
+    tokens = norm.split()
+    if len(tokens) <= 3 and any(t in GREETING_WORDS for t in tokens):
+        # Jika tidak ada satupun kata kunci bahan atau resep, anggap sapaan murni
+        if not any(k in norm for k in RECIPE_INTENT_KEYWORDS):
+            return True
+    return False
+
+def has_culinary_intent(query: str) -> bool:
+    """Mendeteksi apakah pengguna menyebutkan kata kunci kuliner, bahan, atau resep."""
+    norm = normalize_text(query)
+    return any(k in norm for k in RECIPE_INTENT_KEYWORDS)
+
 def retrieve_recipe_rag(user_query: str) -> Optional[Dict[str, Any]]:
     """
     Logika RAG Dobi AI:
-    1. Mencari dokumen paling relevan di Vector Database OpenSearch (999 resep Cookpad) menggunakan kemiripan makna (k-NN)
-    2. Jika OpenSearch belum diisi atau score di bawah ambang batas, fallback ke pencocokan kata kunci statis
+    1. Filter awal: Jika pengguna hanya menyapa ("Halo", "Hai"), JANGAN cari resep!
+    2. Mencari dokumen relevan di Vector Database OpenSearch (999 resep Cookpad) dengan k-NN
+    3. Jika OpenSearch belum diisi atau score di bawah ambang batas, fallback ke kata kunci statis
     """
+    # 0. Saring sapaan dan basa-basi: Jangan pernah tarik resep jika pengguna hanya menyapa!
+    if is_greeting_or_chitchat(user_query):
+        return None
+
+    # Tentukan ambang batas skor kemiripan semantik
+    # Jika pengguna menyebut bahan/resep secara spesifik: 0.68
+    # Jika pertanyaan umum/panjang: 0.74 (agar tidak salah tebak resep acak)
+    has_intent = has_culinary_intent(user_query)
+    min_score_threshold = 0.68 if has_intent else 0.74
+
     # 1. Coba k-NN Semantic Search di OpenSearch
     try:
         query_vector = embed_text(user_query, base_url=OLLAMA_BASE_URL, model=OLLAMA_EMBED_MODEL)
-        hits = vector_store.search(query_vector, k=1, min_score=0.55)
+        hits = vector_store.search(query_vector, k=1, min_score=min_score_threshold)
         if hits:
             top_hit = hits[0]
             meta = top_hit.get("metadata", {})
@@ -326,16 +371,18 @@ def retrieve_recipe_rag(user_query: str) -> Optional[Dict[str, Any]]:
                 "portion": "Sesuai Porsi",
                 "ingredients": ingredients or [raw_bahan],
                 "steps": steps or [raw_langkah],
-                "tips": f"Resep ini diambil langsung via Semantic Search dari koleksi resep Cookpad. Link: {meta.get('url', '-')}",
+                "tips": f"Resep ini diambil via Semantic Search dari koleksi resep Cookpad. Link: {meta.get('url', '-')}",
                 "url": meta.get("url", ""),
                 "score": top_hit.get("score"),
                 "source_type": "opensearch_vector_db"
             }
     except Exception:
-        # Jika OpenSearch / Ollama embed belum aktif atau ada kendala, lanjutkan ke keyword search
         pass
 
-    # 2. Fallback: Pencocokan Kata Kunci Statis
+    # 2. Fallback: Pencocokan Kata Kunci Statis (Hanya jika pengguna berniat memasak)
+    if not has_intent:
+        return None
+
     normalized_query = normalize_text(user_query)
     query_tokens = set(normalized_query.split())
 
@@ -375,7 +422,7 @@ def retrieve_recipe_rag(user_query: str) -> Optional[Dict[str, Any]]:
             best_match = recipe
 
     # Ambang batas skor minimum untuk dianggap relevan
-    if highest_score >= 4 and best_match is not None:
+    if highest_score >= 6 and best_match is not None:
         return best_match
     return None
 
@@ -387,10 +434,12 @@ def build_augmented_prompt(user_query: str, retrieved_recipe: Optional[Dict[str,
         url_info = f"\nTautan Sumber: {retrieved_recipe.get('url')}" if retrieved_recipe.get("url") else ""
 
         prompt = f"""Kamu adalah "Dobi AI", asisten koki pintar, ramah, dan berpengalaman dalam dunia kuliner Nusantara dan Internasional.
-Gunakan HANYA informasi resep terpercaya berikut ini sebagai dasar jawaban utamamu:
+Pengguna menanyakan resep/bahan masakan: "{user_query}"
+
+Gunakan informasi resep terpercaya berikut ini sebagai dasar jawaban utamamu:
 
 ==============================
-DATA RESEP RESMI DOBI AI:
+DATA RESEP TERPILIH DOBI AI:
 Judul Resep : {retrieved_recipe['title']}
 Kategori    : {retrieved_recipe['category']}
 Estimasi Waktu : {retrieved_recipe['prep_time']}
@@ -406,23 +455,28 @@ TIPS RAHASIA KOKI DOBI:
 {retrieved_recipe['tips']}
 ==============================
 
-Pertanyaan Pengguna:
-"{user_query}"
-
 Petunjuk Respon:
-1. Sapa pengguna dengan gaya khas Dobi AI yang ceria, hangat, dan penuh semangat (gunakan emoji seperti 👨‍🍳, 🍳, 🥘).
-2. Sajikan bahan dan langkah memasak secara sistematis, rapi, dan mudah dibaca (gunakan bullet points dan angka).
-3. Sertakan "Tips Rahasia Dobi AI" agar masakan pengguna berhasil sempurna.
+1. Sapa pengguna dengan hangat, ceria, dan penuh semangat (gunakan emoji seperti 👨‍🍳, 🍳, 🥘).
+2. Sajikan bahan dan langkah memasak secara sistematis, rapi, dan mudah dibaca (gunakan bullet points dan nomor).
+3. Berikan tips agar masakan pengguna berhasil lezat.
 4. Akhiri dengan kalimat penyemangat memasak yang menyenangkan.
 """
     else:
         prompt = f"""Kamu adalah "Dobi AI", asisten koki pintar, ramah, dan solutif.
-Pengguna menanyakan: "{user_query}"
+Pengguna mengatakan/menanyakan: "{user_query}"
 
 Petunjuk Respon:
-1. Jawablah pertanyaan ini dengan ramah, informatif, dan praktis seputar resep, bahan makanan, atau tips memasak.
-2. Jika pengguna meminta resep umum yang tidak ada dalam basis data khusus, berikan panduan resep yang lezat, jelas, dan mudah dipraktikkan di rumah.
-3. Jika pertanyaan di luar konteks makanan atau kuliner, ingatkan secara halus dan humoris bahwa kamu adalah Dobi AI yang berfokus membantu urusan dapur dan memasak.
+1. JIKA PENGGUNA HANYA MENYAPA (contoh: "Halo", "Hai", "Selamat pagi", "P", "Siapa kamu", dsb):
+   - Balaslah sapaan tersebut dengan ramah, hangat, dan ceria.
+   - Perkenalkan dirimu secara singkat sebagai Dobi AI, asisten koki pintar.
+   - Tanyakan secara bersahabat: "Kamu punya bahan apa saja di kulkas/dapur atau lagi ingin ide resep apa hari ini? Tuliskan saja bahannya (misalnya: 'punya telur dan tahu') atau nama makanannya, nanti Dobi carikan resep terbaik! 🍳"
+   - PENTING MUTLAK: JANGAN PERNAH memberikan resep masakan secara tiba-tiba jika pengguna hanya menyapa atau belum meminta resep!
+2. JIKA PENGGUNA BERTERIMA KASIH ATAU BASA-BASI:
+   - Balas dengan santun dan senang hati (misal: "Sama-sama! Selamat mencoba di dapur ya! 👨‍🍳").
+3. JIKA PENGGUNA BERTANYA TIPS DAPUR UMUM (contoh: "kenapa minyak meletup saat menggoreng?", "cara menyimpan cabai agar awet"):
+   - Jawab pertanyaan tersebut secara langsung, praktis, dan informatif.
+4. JIKA PERTANYAAN DI LUAR KONTEKS MAKANAN/MEMASAK:
+   - Ingatkan secara halus dan ramah bahwa kamu adalah Dobi AI yang berfokus membantu urusan resep dan dapur.
 """
     return prompt
 
@@ -446,14 +500,18 @@ def generate_local_fallback_response(user_query: str, recipe: Optional[Dict[str,
             f"Selamat mencoba di dapur ya! Jika ada bahan yang ingin diganti atau ditanyakan, kasih tahu Dobi ya! 🔥"
         )
     else:
-        return (
-            f"Halo Sobat Kuliner! 👨‍🍳 Aku **Dobi AI**.\n\n"
-            f"Terima kasih atas pertanyaannya: *\"{user_query}\"*.\n\n"
-            f"> 💡 *(Catatan Sistem: Mode Cepat / Simulasi Aktif - Ollama belum terhubung di {OLLAMA_BASE_URL})*\n\n"
-            f"Untuk saat ini kata kunci tersebut belum terdaftar dalam koleksi resep lokal cepat kami. "
-            f"Kamu bisa mencoba klik menu resep di sidebar kiri atau sebutkan bahan yang kamu punya (cth: 'ayam, wortel, daun bawang') agar Dobi AI bisa mencarikan resep yang cocok!\n\n"
-            f"Atau jalankan Ollama dengan model Llama 3.2 3B (`ollama run llama3.2:3b`) agar Dobi AI bisa menjawab pertanyaan kuliner apa saja secara tak terbatas! ✨"
-        )
+        if is_greeting_or_chitchat(user_query):
+            return (
+                "Halo Sobat Dapur! 👨‍🍳 Aku **Dobi AI**, asisten koki pintar kamu.\n\n"
+                "Ada bahan apa saja di kulkas atau dapurmu hari ini? Atau lagi pengen masak apa?\n\n"
+                "Ketikkan saja bahan yang kamu punya (misalnya: *'ada ayam, bawang, dan kecap'* atau *'resep soto ayam'*), nanti Dobi carikan resep yang paling pas dari 999 database kami! ✨"
+            )
+        else:
+            return (
+                f"Halo Sobat Kuliner! 👨‍🍳 Aku **Dobi AI**.\n\n"
+                f"Terima kasih atas pertanyaannya: *\"{user_query}\"*.\n\n"
+                f"Untuk pertanyaan tersebut, kamu bisa coba sebutkan bahan masakan yang kamu miliki di rumah (contoh: *'punya telur, tahu, dan kecap'* atau *'resep nasi goreng'*), dan aku akan mencarikan resep masakan yang paling cocok untukmu! 🥘"
+            )
 
 # ==============================================================================
 # PYDANTIC SCHEMAS
