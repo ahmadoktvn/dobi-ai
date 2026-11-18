@@ -38,9 +38,11 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 KNOWLEDGE_BASE_PATH = os.environ.get("KNOWLEDGE_BASE_PATH", "/app/knowledge-base")
 OPENSEARCH_BASE_URL = os.getenv("OPENSEARCH_BASE_URL", "http://opensearch:9200")
+OPENSEARCH_INDEX = os.environ.get("OPENSEARCH_INDEX", "recipes-index")
+RAG_TOP_K = int(os.environ.get("RAG_TOP_K", "5"))
 
 # Inisialisasi Vector Store OpenSearch
-vector_store = VectorStore(base_url=OPENSEARCH_BASE_URL, index_name="recipes-index")
+vector_store = VectorStore(base_url=OPENSEARCH_BASE_URL, index_name=OPENSEARCH_INDEX)
 
 # ==============================================================================
 # RETRIEVER (RAG: OpenSearch Vector Search + Knowledge Base Fallback)
@@ -281,9 +283,16 @@ async def chat_endpoint(payload: ChatRequest):
 
 @app.post("/chat/stream")
 async def chat_stream_endpoint(payload: ChatStreamRequest):
-    """Endpoint chat streaming: validasi messages tidak boleh kosong."""
+    """
+    Endpoint chat streaming (Module 16):
+    Validasi messages tidak boleh kosong dan elemen terakhir harus memiliki role 'user'.
+    """
     if not payload.messages:
-        raise HTTPException(status_code=400, detail="messages kosong")
+        raise HTTPException(status_code=400, detail="messages harus non-kosong")
+    last_msg = payload.messages[-1]
+    last_role = last_msg.get("role") if isinstance(last_msg, dict) else getattr(last_msg, "role", None)
+    if last_role and last_role != "user":
+        raise HTTPException(status_code=400, detail="elemen terakhir harus role 'user'")
     return {"status": "ok", "message": "chat stream ready"}
 
 @app.get("/health")
